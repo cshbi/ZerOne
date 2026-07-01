@@ -12,7 +12,7 @@ Week 1 - 클라이언트 (client.py)
 
 import socket
 
-HOST = "127.0.0.1"   # 접속할 서버의 IP. 같은 PC면 localhost(127.0.0.1)
+HOST = "127.168.0.27"   # 접속할 서버의 IP. 같은 PC면 localhost(127.0.0.1)
 PORT = 5000          # 서버가 열어 둔 내선번호와 똑같아야 한다
 
 # 1) 소켓을 만든다 (= 수화기를 든다)

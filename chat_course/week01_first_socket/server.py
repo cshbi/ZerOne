@@ -16,7 +16,7 @@ Week 1 - 서버 (server.py)
 
 import socket
 
-HOST = "127.0.0.1"   # 내 컴퓨터 자신(localhost). 같은 PC 안에서 연습할 때 사용
+HOST = "127.168.0.27"   # 내 컴퓨터 자신(localhost). 같은 PC 안에서 연습할 때 사용
 PORT = 5000          # 약속한 내선번호. 클라이언트도 같은 번호로 접속해야 한다
 
 # 1) 소켓을 만든다 (= 수화기를 든다)
@@ -58,7 +58,7 @@ try:
         print(f"[손님] {message}")
 
         # 내 답장을 입력받아서, 글자를 바이트로 바꿔(encode) 보낸다.
-        reply = input("[나(서버)] ")
+        reply = message.upper()
         conn.sendall(reply.encode("utf-8"))
 except (EOFError, KeyboardInterrupt):
     print("\n[서버] 대화를 종료합니다.")
