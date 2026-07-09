@@ -22,12 +22,15 @@ client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client_socket.connect((HOST, PORT))
 print(f"[클라이언트] {HOST}:{PORT} 서버에 연결했습니다!\n")
 
+닉네임 = input("닉네임: ")
+print(f"[{닉네임}] 님, 대화를 시작합니다. \n")
 # 3) 반복문으로 계속 주고받는다 (내가 먼저 말하고, 서버 답을 듣는다)
 #    Ctrl+C(중단)나 Ctrl+D(입력 끝)로 빠져나오면 깔끔히 종료되도록 감싼다.
 try:
     while True:
         # 보낼 말을 입력받아, 글자를 바이트로 바꿔(encode) 서버로 보낸다
         message = input("[나(클라이언트)] ")
+        full_message = f"{닉네임}: {message}"
         client_socket.sendall(message.encode("utf-8"))
 
         # 서버의 답을 바이트로 받아서(recv), 글자로 되돌린다(decode)
