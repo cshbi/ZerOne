@@ -65,16 +65,39 @@ def handle(conn, addr):
             break
         if not data:          # 빈 데이터 = 손님이 나갔다
             break
-        message = data.decode("utf-8")
-        broadcast(f"{nickname}: {message}")
+        # 양끝 공백을 제거하여 "/count "처럼 공백이 들어가도 인식하도록 처리
+        message = data.decode("utf-8").strip()
+        
+        # [수정] 사용자가 /count 라고 입력했는지 확인
+        if message == "/count":
+            with clients_lock:
+                current_count = len(clients)
+            # 명령어를 친 본인(conn)에게만 현재 인원수를 귓속말처럼 응답
+            response = f"[서버] 현재 접속자 수는 {current_count}명입니다."
+            try:
+                conn.sendall(response.encode("utf-8"))
+            except OSError:
+                break
+        else:
+            # 일반 메시지는 기존처럼 모두에게 보냄
+            broadcast(f"{nickname}: {message}")
 
     # 퇴장 처리: 목록에서 빼고, 모두에게 알린다
     with clients_lock:
         clients.pop(conn, None)
         count = len(clients)
+        remaining_members = list(clients.values())
+    
     conn.close()
     print(f"[서버] {nickname} 퇴장  (현재 {count}명)")
-    broadcast(f"*** {nickname}님이 나갔습니다 (현재 {count}명) ***")
+    
+    # [수정] 남은 사람이 있다면 목록을 이쁘게 포맷팅해서 공지
+    if count > 0:
+        # 리스트 요소를 쉼표(,)로 연결하여 하나의 문자열로 만듦 (예: "홍길동, 임꺽정")
+        members_str = ", ".join(remaining_members)
+        broadcast(f"*** {nickname}님이 나갔습니다 (남은 인원: {count}명) ***\n[남은 사람 목록: {members_str}]")
+    else:
+        broadcast(f"*** {nickname}님이 나갔습니다 (남은 인원: 0명) ***")
 
 
 def main():
