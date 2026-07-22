@@ -29,12 +29,14 @@ clients = {}                       # conn -> nickname
 clients_lock = threading.Lock()
 
 
-def broadcast(line):
-    """한 줄(개행 포함)을 접속자 전원에게 보낸다."""
+def broadcast(line, exclude = None): ##제외할 대상 파라미터 추가 
+    """한 줄(개행 포함)을 접속자 전원에게 보낸다. exclude 는 제외할 conn"""
     data = (line + "\n").encode("utf-8")
     with clients_lock:
         targets = list(clients.keys())
     for sock in targets:
+        if sock == exclude : ##2주차랑 동일함 ##
+            continue
         try:
             sock.sendall(data)
         except OSError:
@@ -78,8 +80,12 @@ def handle(conn, addr):
                 conn.sendall("TEXT|시스템|파일이 너무 큽니다(5MB 제한)\n".encode("utf-8"))
             else:
                 print(f"[서버] (파일) {nickname} → {filename} (약 {approx} bytes)")
-                broadcast(f"FILE|{nickname}|{filename}|{b64}")
-
+                broadcast(f"FILE|{nickname}|{filename}|{b64}", exclude= conn)
+        ##위치 추가##
+        elif line.startswith("LOC|"):
+            _, lat, lon = line.split("|", 2)
+            print(f"[서버]{nickname}위치가 위도{lat}, 경도{lon}에 위치함 ")
+            broadcast(f"LOC|{nickname}|{lat}|{lon}")
         else:
             print(f"[서버] (알 수 없는 종류) {line[:30]}")
         # ================================================================

@@ -42,12 +42,30 @@ def receive(sock):
         elif line.startswith("FILE|"):
             _, sender, filename, b64 = line.split("|", 3)
             data = base64.b64decode(b64)     # base64 문자열 → 원래 바이트
-            os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+            os.makedirs(DOWNLOAD_DIR, exist_ok=True) ###여기 때문에 다운로드 폴더가 생김// exist_ok=True를 붙이면 "이미 있어도 에러 내지 말고 그냥 넘어가"######
             save_as = os.path.join(DOWNLOAD_DIR, f"{sender}_{filename}")
+            ##추가## "BIN_cat_2.png"
+            if os.path.exists(save_as):
+                name, ext = os.path.splitext(f"{sender}_{filename}")
+                n=1
+                while True:
+                    try_name = f"{name}_{n}{ext}"
+                    try_path = os.path.join(DOWNLOAD_DIR, try_name)
+                    if not os.path.exists(try_path):
+                        save_as = try_path
+                        break
+                    n += 1
+
             with open(save_as, "wb") as f:
                 f.write(data)
             print(f"📎 [{sender}]님이 파일을 보냈습니다 → 저장: {save_as} ({len(data)} bytes)")
-
+            # 파일 메시지 도착
+            # base64를 원래 바이트로 디코딩
+            # 저장할 폴더가 있는지 확인 → 없으면 자동 생성
+            # 그 폴더 안에 파일 저장
+        elif line.startswith("LOC|"):
+            _, sender, lat, lon = line.split("|", 3)
+            print(f"{sender}님이 위치를 공유했습니다.: 위도:{lat} 경도:{lon}")
         else:
             print(f"[알 수 없는 메시지] {line[:30]}")
         # ================================================
@@ -82,6 +100,12 @@ def main():
                 filename = os.path.basename(path)
                 sock.sendall(f"FILE|{filename}|{b64}\n".encode("utf-8"))
                 print(f"(파일 보냄: {filename}, {len(raw)} bytes)")
+            ## 위치 공유 추가하기 ##    
+            elif text.startswith("/loc "):
+                coords = text[len("/loc "):].strip()
+                lat, lon = coords.split()
+                sock.sendall(f"LOC|{lat}|{lon}\n".encode("utf-8"))
+                print(f"(위치 보냄: 위도 {lat}, 경도 {lon})")
             else:
                 sock.sendall(f"TEXT|{text}\n".encode("utf-8"))
             # ==================================================

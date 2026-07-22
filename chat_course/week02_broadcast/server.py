@@ -27,16 +27,19 @@ clients = {} #배열(dictionary)
 clients_lock = threading.Lock()
 
 
-def broadcast(text):
+def broadcast(text, sender_socket=None): #sender_conn 매개변수 추가로 서버가 보낸 사람이 누군지 알게함?
     """접속한 모두에게 같은 문장을 보낸다 (= 중앙 우체국에서 전원에게 배달)."""
+    """과제 1번 : 내 메시지가 화면에 한 번만 보이게 — 보낸 사람을 제외하고 브로드캐스트"""
+    """서버에서 모든 사람에게 브로드캐스트 하고 있음 -> 보낸사람을 제외하고 보내도록 수정"""
     data = text.encode("utf-8")
     with clients_lock:
         targets = list(clients.keys())   # 잠깐 복사해서 안전하게 순회
     for sock in targets:
-        try:
-            sock.sendall(data)
-        except OSError:
-            pass   # 이미 끊긴 소켓은 그냥 건너뛴다
+        if sock != sender_socket:  
+            try:
+                sock.sendall(data)
+            except OSError:
+                pass   # 이미 끊긴 소켓은 그냥 건너뛴다
 
 
 def handle(conn, addr):
@@ -65,39 +68,16 @@ def handle(conn, addr):
             break
         if not data:          # 빈 데이터 = 손님이 나갔다
             break
-        # 양끝 공백을 제거하여 "/count "처럼 공백이 들어가도 인식하도록 처리
-        message = data.decode("utf-8").strip()
-        
-        # [수정] 사용자가 /count 라고 입력했는지 확인
-        if message == "/count":
-            with clients_lock:
-                current_count = len(clients)
-            # 명령어를 친 본인(conn)에게만 현재 인원수를 귓속말처럼 응답
-            response = f"[서버] 현재 접속자 수는 {current_count}명입니다."
-            try:
-                conn.sendall(response.encode("utf-8"))
-            except OSError:
-                break
-        else:
-            # 일반 메시지는 기존처럼 모두에게 보냄
-            broadcast(f"{nickname}: {message}")
+        message = data.decode("utf-8")
+        broadcast(f"{nickname}: {message}")
 
     # 퇴장 처리: 목록에서 빼고, 모두에게 알린다
     with clients_lock:
         clients.pop(conn, None)
         count = len(clients)
-        remaining_members = list(clients.values())
-    
     conn.close()
     print(f"[서버] {nickname} 퇴장  (현재 {count}명)")
-    
-    # [수정] 남은 사람이 있다면 목록을 이쁘게 포맷팅해서 공지
-    if count > 0:
-        # 리스트 요소를 쉼표(,)로 연결하여 하나의 문자열로 만듦 (예: "홍길동, 임꺽정")
-        members_str = ", ".join(remaining_members)
-        broadcast(f"*** {nickname}님이 나갔습니다 (남은 인원: {count}명) ***\n[남은 사람 목록: {members_str}]")
-    else:
-        broadcast(f"*** {nickname}님이 나갔습니다 (남은 인원: 0명) ***")
+    broadcast(f"*** {nickname}님이 나갔습니다 (현재 {count}명) ***")
 
 
 def main():
