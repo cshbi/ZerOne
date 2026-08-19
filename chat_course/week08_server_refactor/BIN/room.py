@@ -44,9 +44,9 @@ class Room:
 
 # ------------------------------------------------------------
 # [실습/과제 힌트] 방 최대 인원 제한
-    def __init__(self, name, capacity=None):
-        ...; self.capacity = capacity
-    def is_full(self):
-        return self.capacity is not None and len(self.members) >= self.capacity
-# join 전에 is_full() 을 확인하면 된다.ㅇ
+#   def __init__(self, name, capacity=None):
+#       ...; self.capacity = capacity
+#   def is_full(self):
+#       return self.capacity is not None and len(self.members) >= self.capacity
+# join 전에 is_full() 을 확인하면 된다.
 # ------------------------------------------------------------
