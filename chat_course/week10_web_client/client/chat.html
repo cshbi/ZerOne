@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>대화</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="chat-page">
+    <div class="header">
+      <span id="title">🗨️ 방</span>
+      <button onclick="leave()">나가기</button>
+    </div>
+
+    <div class="messages" id="messages"></div>
+
+    <div class="inputbar">
+      <label class="file-label" title="파일 보내기">📎
+        <input id="file" type="file" onchange="sendFile()" />
+      </label>
+      <span class="emoji-bar">
+        <button onclick="sock.sendEmoji('smile')">😄</button>
+        <button onclick="sock.sendEmoji('heart')">❤️</button>
+        <button onclick="sock.sendEmoji('thumbsup')">👍</button>
+        <button onclick="sock.sendEmoji('cry')">😢</button>
+        <button onclick="sock.sendEmoji('wow')">😮</button>
+      </span>
+      <input id="text" type="text" placeholder="메시지 입력" onkeydown="if(event.key==='Enter')send()" autofocus />
+      <button onclick="send()">전송</button>
+    </div>
+  </div>
+
+  <script src="codec.js"></script>
+  <script src="messages.js"></script>
+  <script src="app.js"></script>
+  <script>
+    const nick = qs("nick") || "손님";
+    const room = qs("room");
+    document.getElementById("title").textContent = "🗨️ " + room;
+    document.title = room + " — 대화";
+
+    const messages = document.getElementById("messages");
+    const sock = new ChatSocket(nick);
+    sock.onOpen = () => sock.command("/join " + room);      // 접속하면 이 방에 입장
+    sock.onMessage = (m) => render(m);
+    sock.connect();
+
+    function send() {
+      const el = document.getElementById("text");
+      const t = el.value.trim();
+      if (!t) return;
+      sock.sendText(t);
+      el.value = "";
+    }
+
+    function sendFile() {
+      const f = document.getElementById("file").files[0];
+      if (!f) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const b64 = reader.result.split(",")[1];             // data:...;base64,XXXX 에서 뒤쪽만
+        sock.sendFile(f.name, b64);
+      };
+      reader.readAsDataURL(f);
+      document.getElementById("file").value = "";
+    }
+
+    function leave() {
+      sock.command("/leave");
+      setTimeout(() => window.close(), 150);
+    }
+
+    // ── 받은 메시지를 화면에 그린다 ──
+    function render(m) {
+      if (m.kind === "sys") {                                // 시스템 알림 = 가운데 회색
+        // 접속 시 오는 '명령 안내' 류는 대화창에선 숨긴다 (방은 UI 로 조작하므로)
+        if (m.text.startsWith("명령:") || m.text.startsWith("사용법:")) return;
+        addLine(`<div class="sys">${escapeHtml(m.text)}</div>`);
+        return;
+      }
+      const mine = m.sender === nick;                        // 내 말이면 오른쪽(mine)
+
+      let bubble;
+      if (m.kind === "emoji") {
+        bubble = `<div class="bubble emoji">${m.face}</div>`;
+      } else if (m.kind === "file") {
+        const url = `data:application/octet-stream;base64,${m.b64}`;
+        bubble = `<div class="bubble">📎 <a href="${url}" download="${escapeAttr(m.filename)}">${escapeHtml(m.filename)}</a></div>`;
+      } else {
+        bubble = `<div class="bubble">${escapeHtml(m.text)}</div>`;
+      }
+
+      const nameTag = mine ? "" : `<div class="name">${escapeHtml(m.sender)}</div>`;
+      addLine(`<div class="row ${mine ? "mine" : ""}"><div>${nameTag}${bubble}</div></div>`);
+    }
+
+    function addLine(html) { messages.insertAdjacentHTML("beforeend", html); scroll(); }
+    function scroll() { messages.scrollTop = messages.scrollHeight; }
+    function escapeHtml(s) { return (s || "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
+    function escapeAttr(s) { return escapeHtml(s); }
+  </script>
+</body>
+</html>

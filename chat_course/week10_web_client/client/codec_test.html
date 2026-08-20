@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>codec.js 자가진단 (AES 상호운용)</title>
+  <style>
+    body { font-family: system-ui, "맑은 고딕", sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; }
+    .pass { color: #1a7f37; font-weight: bold; }
+    .fail { color: #cf222e; font-weight: bold; }
+    pre { background: #f6f8fa; padding: 12px; border-radius: 8px; white-space: pre-wrap; word-break: break-all; }
+    h1 { font-size: 20px; }
+  </style>
+</head>
+<body>
+  <h1>codec.js 자가진단 — 파이썬 AES 와 통하는가?</h1>
+  <p>이 페이지를 열면 아래 세 가지를 자동 검사합니다. 웹 클라이언트 실습 전에 한 번 확인하세요.</p>
+  <pre id="out">검사 중...</pre>
+
+  <script src="codec.js"></script>
+  <script>
+    // 파이썬(codec.py)이 '고정 nonce' 로 만든 test vector.
+    //   평문:  TEXT|철수|웹에서 안녕!
+    const PY_VECTOR = "AAECAwQFBgcICQoLYgcFXL6V+63sXqj55FPB4VSqrEo4JoqFD2oTWKAGNNVaon0VPDLBC4DzyxaJ";
+    const EXPECT = "TEXT|철수|웹에서 안녕!";
+
+    (async () => {
+      const lines = [];
+      const mark = (ok, msg) => lines.push(`${ok ? "✅ PASS" : "❌ FAIL"} — ${msg}`);
+
+      // ① 파이썬이 암호화한 걸 JS 가 복호화 (JS ← Python)
+      try {
+        const got = await Codec.decode(PY_VECTOR);
+        mark(got === EXPECT, `파이썬 암호문 복호화: "${got}"`);
+      } catch (e) { mark(false, "파이썬 암호문 복호화 예외: " + e); }
+
+      // ② JS 왕복 (encode -> decode)
+      try {
+        const line = await Codec.encode("EMOJI|영희|smile");
+        const back = await Codec.decode(line);
+        mark(back === "EMOJI|영희|smile", `JS 왕복: "${back}"`);
+      } catch (e) { mark(false, "JS 왕복 예외: " + e); }
+
+      // ③ 매번 다른 암호문 (nonce 무작위)
+      try {
+        const a = await Codec.encode("TEXT|철수|같은내용");
+        const b = await Codec.encode("TEXT|철수|같은내용");
+        mark(a !== b, "같은 내용도 매번 다른 암호문(nonce 무작위)");
+      } catch (e) { mark(false, "nonce 검사 예외: " + e); }
+
+      const allPass = lines.every((l) => l.startsWith("✅"));
+      document.getElementById("out").innerHTML =
+        (allPass ? '<span class="pass">모두 통과 — codec.js 가 파이썬 AES 와 호환됩니다.</span>\n\n'
+                 : '<span class="fail">일부 실패 — codec.js/서버 PASSPHRASE 를 확인하세요.</span>\n\n')
+        + lines.join("\n");
+    })();
+  </script>
+</body>
+</html>
