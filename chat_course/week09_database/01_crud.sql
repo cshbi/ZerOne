@@ -21,14 +21,14 @@ WHERE  room_id = 1
 ORDER BY message_id;
 
 -- 조건 좁히기: 텍스트 메시지만
-SELECT content FROM messages WHERE room_id = 1 AND kind = 'TEXT';
+SELECT content FROM messages WHERE room_id = 1 AND kind = 'TEXT';  
 
 -- 개수 세기: 잡담방 메시지 몇 개?
 SELECT COUNT(*) AS 잡담방_메시지수 FROM messages WHERE room_id = 1;
 
 -- ── U: UPDATE (수정) ──────────────────────────────
 -- 방금 넣은 '나 왔어' 를 고친다  (WHERE 를 빼먹으면 전체가 바뀐다! 항상 WHERE)
-UPDATE messages SET content = '나 이제 왔어~' WHERE content = '나 왔어';
+UPDATE messages SET content = '나 이제 왔어~', WHERE content = '나 왔어';
 
 -- 확인
 SELECT content FROM messages WHERE content = '나 이제 왔어~';
